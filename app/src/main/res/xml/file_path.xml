@@ -6,4 +6,8 @@
     <files-path name="app_files_root" path="." />
     <!-- Cache directory -->
     <cache-path name="cache" path="." />
+    <!-- External Downloads directory -->
+    <external-path name="external_downloads" path="Download/EasyShare/" />
+    <!-- External storage root -->
+    <external-path name="external_storage" path="." />
 </paths>

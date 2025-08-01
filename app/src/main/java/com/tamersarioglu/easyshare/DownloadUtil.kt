@@ -8,6 +8,7 @@ import com.yausername.youtubedl_android.YoutubeDLResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import android.os.Environment
 
 // Sealed class to represent different states of the download process
 sealed class DownloadResult {
@@ -50,10 +51,16 @@ object DownloadUtil {
                 // 1. Create a request
                 val request = YoutubeDLRequest(url)
 
-                // 2. Set options
-                val outputDir = File(context.filesDir, "downloads").apply { mkdirs() }
-                val outputTemplate = File(outputDir, "%(title)s.%(ext)s").absolutePath
+                // 2. Set options - Save to public Downloads folder
+                val outputDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "EasyShare")
+                    .apply { mkdirs() }
+                
+                // Use absolute path for output template with proper escaping
+                val outputTemplate = "${outputDir.absolutePath}/%(title)s.%(ext)s"
                 request.addOption("-o", outputTemplate)
+                
+                // Add additional options to ensure file goes to correct location
+                request.addOption("--restrict-filenames")  // Avoid special characters that might cause path issues
 
                 // Set format
                 request.addOption("-f", format)
@@ -83,11 +90,48 @@ object DownloadUtil {
 
                 // 4. Handle the result
                 if (response.exitCode == 0) {
-                    // Success - try to find the downloaded file based on template
-                    val downloadedFiles = outputDir.listFiles()
-                    val finalFilePath = downloadedFiles?.maxByOrNull { it.lastModified() }?.absolutePath
-                        ?: outputTemplate
+                    // Success - try to find the downloaded file
                     Log.d(TAG, "Download successful with format: $format")
+                    Log.d(TAG, "Expected output dir: ${outputDir.absolutePath}")
+                    Log.d(TAG, "Output template: $outputTemplate")
+                    
+                    // First check if file is in our intended directory
+                    var finalFilePath: String? = null
+                    val downloadedFiles = outputDir.listFiles()
+                    
+                    if (downloadedFiles != null && downloadedFiles.isNotEmpty()) {
+                        // File found in EasyShare folder
+                        finalFilePath = downloadedFiles.maxByOrNull { it.lastModified() }?.absolutePath
+                        Log.d(TAG, "Found file in EasyShare folder: $finalFilePath")
+                    } else {
+                        // File might be in the root Downloads folder, let's search there
+                        val downloadsRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                        val rootFiles = downloadsRoot.listFiles()?.filter { 
+                            it.isFile && it.lastModified() > System.currentTimeMillis() - 60000 // Files from last minute
+                        }
+                        
+                        if (rootFiles != null && rootFiles.isNotEmpty()) {
+                            val recentFile = rootFiles.maxByOrNull { it.lastModified() }
+                            if (recentFile != null) {
+                                // Move the file to EasyShare folder
+                                val targetFile = File(outputDir, recentFile.name)
+                                try {
+                                    if (recentFile.renameTo(targetFile)) {
+                                        finalFilePath = targetFile.absolutePath
+                                        Log.d(TAG, "Moved file from root Downloads to EasyShare: $finalFilePath")
+                                    } else {
+                                        finalFilePath = recentFile.absolutePath
+                                        Log.w(TAG, "Could not move file, using original location: $finalFilePath")
+                                    }
+                                } catch (e: Exception) {
+                                    finalFilePath = recentFile.absolutePath
+                                    Log.w(TAG, "Error moving file, using original location: $finalFilePath", e)
+                                }
+                            }
+                        }
+                    }
+                    
+                    finalFilePath = finalFilePath ?: outputTemplate
                     onProgress(DownloadResult.Success(finalFilePath))
                     return // Success, exit the function
                 } else {

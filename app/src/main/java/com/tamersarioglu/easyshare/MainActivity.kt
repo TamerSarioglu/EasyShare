@@ -7,6 +7,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -47,15 +52,56 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    
+    private val storagePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.all { it.value }
+        if (!allGranted) {
+            Toast.makeText(
+                this,
+                "Storage permissions are required to download videos to your device",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Request storage permissions
+        requestStoragePermissions()
+        
         setContent {
             EasyShareTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     DownloadScreen()
                 }
             }
+        }
+    }
+    
+    private fun requestStoragePermissions() {
+        val permissions = mutableListOf<String>()
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ (API 33+)
+            permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
+        } else {
+            // Android 12 and below
+            permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+        
+        val permissionsToRequest = permissions.filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
+        }
+        
+        if (permissionsToRequest.isNotEmpty()) {
+            storagePermissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
 }
@@ -200,69 +246,98 @@ fun DownloadScreen() {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Button(
-                        onClick = {
-                            try {
-                                val file = File(state.filePath)
-                                if (file.exists()) {
-                                    // Create intent to open file manager at the folder location
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(
-                                            Uri.fromFile(file.parentFile),
-                                            "resource/folder"
-                                        )
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = {
+                                try {
+                                    val file = File(state.filePath)
+                                    if (file.exists()) {
+                                        // Try to open Downloads folder directly
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(
+                                                Uri.parse("content://com.android.externalstorage.documents/document/primary:Download/EasyShare"),
+                                                "vnd.android.document/directory"
+                                            )
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
 
-                                    try {
-                                        context.startActivity(intent)
-                                    } catch (e: Exception) {
-                                        // Fallback: try different approaches
                                         try {
-                                            // Try with file manager intent
-                                            val fileManagerIntent =
-                                                Intent(Intent.ACTION_GET_CONTENT).apply {
-                                                    type = "*/*"
-                                                    addCategory(Intent.CATEGORY_OPENABLE)
-                                                    putExtra(
-                                                        "org.openintents.extra.ABSOLUTE_PATH",
-                                                        file.parent
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) {
+                                            // Fallback: Open Downloads folder
+                                            try {
+                                                val downloadsIntent = Intent(Intent.ACTION_VIEW).apply {
+                                                    setDataAndType(
+                                                        Uri.parse("content://com.android.externalstorage.documents/document/primary:Download"),
+                                                        "vnd.android.document/directory"
                                                     )
                                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                 }
-                                            context.startActivity(fileManagerIntent)
-                                        } catch (e2: Exception) {
-                                            // Final fallback: show the path and copy to clipboard
-                                            val clipboard =
-                                                context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                            val clip = android.content.ClipData.newPlainText(
-                                                "File Path",
-                                                file.absolutePath
-                                            )
-                                            clipboard.setPrimaryClip(clip)
-
-                                            Toast.makeText(
-                                                context,
-                                                "File path copied to clipboard: ${file.absolutePath}",
-                                                Toast.LENGTH_LONG
-                                            ).show()
+                                                context.startActivity(downloadsIntent)
+                                            } catch (e2: Exception) {
+                                                // Final fallback: Show path
+                                                Toast.makeText(
+                                                    context,
+                                                    "File saved to: Downloads/EasyShare/${file.name}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
                                         }
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Video file not found",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
-                                } else {
-                                    Toast.makeText(
-                                        context,
-                                        "Video file not found",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT)
+                                        .show()
                                 }
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT)
-                                    .show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Show in Files")
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Open Folder")
+                        }
+                        
+                        Button(
+                            onClick = {
+                                try {
+                                    val file = File(state.filePath)
+                                    if (file.exists()) {
+                                        // Share the video file
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.provider",
+                                            file
+                                        )
+                                        
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "video/*"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+                                        
+                                        context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Video file not found",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error sharing: ${e.message}", Toast.LENGTH_SHORT)
+                                        .show()
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Share")
+                        }
                     }
                 }
 
