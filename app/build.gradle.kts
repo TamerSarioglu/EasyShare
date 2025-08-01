@@ -80,10 +80,10 @@ dependencies {
 
     // --- youtubedl-android dependencies ---
     // Core library for downloading - using latest version
-    implementation("io.github.junkfood02.youtubedl-android:library:0.17.4") // Latest version with updated yt-dlp
+    implementation(libs.library) // Latest version with updated yt-dlp
     // Optional: FFmpeg for better format support
-    implementation("io.github.junkfood02.youtubedl-android:ffmpeg:0.17.4") // Latest version
+    implementation(libs.ffmpeg) // Latest version
     // Optional: Aria2c for potentially faster downloads (if needed)
-    implementation("io.github.junkfood02.youtubedl-android:aria2c:0.17.4") // Latest version
+    implementation(libs.aria2c) // Latest version
     // --- End youtubedl-android dependencies ---
 }

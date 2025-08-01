@@ -31,16 +31,22 @@ object DownloadUtil {
         onProgress(DownloadResult.Initializing)
         isCancelled = false
 
-        // Try different format options as fallbacks
+        // Enhanced format options with more fallbacks
         val formatOptions = listOf(
-            "best[ext=mp4]", // Simple best mp4
-            "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best", // Original format
-            "worst[ext=mp4]", // Lower quality as last resort
-            "best" // Any format
+            // Try simple best formats first
+            "best[height<=720][ext=mp4]",
+            "best[height<=480][ext=mp4]",
+            "worst[ext=mp4]",
+            // Fallback to any format
+            "best[height<=720]",
+            "best[height<=480]",
+            "worst"
         )
 
         for ((index, format) in formatOptions.withIndex()) {
             try {
+                Log.d(TAG, "Trying format: $format (attempt ${index + 1}/${formatOptions.size})")
+
                 // 1. Create a request
                 val request = YoutubeDLRequest(url)
 
@@ -52,14 +58,20 @@ object DownloadUtil {
                 // Set format
                 request.addOption("-f", format)
 
-                // Add workaround options for YouTube extraction issues
-                request.addOption("--extractor-args", "youtube:player_client=android")
+                // Enhanced extraction options for YouTube
+                request.addOption("--extractor-args", "youtube:player_client=android,web")
                 request.addOption("--no-check-certificates")
-                request.addOption("--user-agent", "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36")
-                
-                // Add progress hooks for monitoring
+                request.addOption("--user-agent", "Mozilla/5.0 (Linux; Android 11; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36")
+
+                // Additional workaround options
+                request.addOption("--compat-options", "no-youtube-channel-redirect")
+                request.addOption("--extractor-retries", "3")
+                request.addOption("--socket-timeout", "30")
+
+                // Progress and output options
                 request.addOption("--newline")
                 request.addOption("--no-warnings")
+                request.addOption("--ignore-errors")
 
                 // 3. Execute the request on IO thread
                 val response: YoutubeDLResponse = withContext(Dispatchers.IO) {
@@ -73,8 +85,9 @@ object DownloadUtil {
                 if (response.exitCode == 0) {
                     // Success - try to find the downloaded file based on template
                     val downloadedFiles = outputDir.listFiles()
-                    val finalFilePath = downloadedFiles?.maxByOrNull { it.lastModified() }?.absolutePath 
+                    val finalFilePath = downloadedFiles?.maxByOrNull { it.lastModified() }?.absolutePath
                         ?: outputTemplate
+                    Log.d(TAG, "Download successful with format: $format")
                     onProgress(DownloadResult.Success(finalFilePath))
                     return // Success, exit the function
                 } else {
@@ -86,7 +99,7 @@ object DownloadUtil {
                         return
                     }
                     // Otherwise, continue to next format option
-                    Log.w(TAG, "Format $format failed, trying next option...")
+                    Log.w(TAG, "Format $format failed (exit code: ${response.exitCode}), trying next option...")
                 }
 
             } catch (e: InterruptedException) {
@@ -94,13 +107,15 @@ object DownloadUtil {
                 onProgress(DownloadResult.Cancelled)
                 return
             } catch (e: Exception) {
+                Log.w(TAG, "Format $format failed with exception: ${e.message}")
+
                 // If this is the last format option, handle the error
                 if (index == formatOptions.size - 1) {
                     Log.e(TAG, "Download error with all format options", e)
-                    
+
                     val errorMessage = when {
                         e.message?.contains("Failed to extract any player response") == true -> {
-                            "YouTube extraction failed. The video might be private, age-restricted, or the library needs updating."
+                            "YouTube extraction failed. Try updating the app or the video might be restricted. Error: ${e.message}"
                         }
                         e.message?.contains("Video unavailable") == true -> {
                             "Video is unavailable or has been removed."
@@ -108,14 +123,35 @@ object DownloadUtil {
                         e.message?.contains("Private video") == true -> {
                             "Cannot download private videos."
                         }
+                        e.message?.contains("Sign in to confirm your age") == true -> {
+                            "Age-restricted video. Cannot download without authentication."
+                        }
+                        e.message?.contains("This video is not available") == true -> {
+                            "Video is not available in your region or has been removed."
+                        }
                         else -> "Download error: ${e.message}"
                     }
-                    
+
                     onProgress(DownloadResult.Error(errorMessage))
                     return
                 }
                 // Otherwise, continue to next format option
-                Log.w(TAG, "Format $format failed with exception: ${e.message}, trying next option...")
+            }
+        }
+    }
+
+    /**
+     * Try to update the yt-dlp binary
+     */
+    suspend fun updateYoutubeDL(context: Context): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)
+                Log.d(TAG, "yt-dlp binary updated successfully")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update yt-dlp binary", e)
+                false
             }
         }
     }
