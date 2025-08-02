@@ -9,8 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -46,34 +45,38 @@ fun DownloadHistorySection(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        if (downloadHistory.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = AppConstants.NO_DOWNLOADS_MESSAGE,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp)
-            ) {
-                items(
-                    items = downloadHistory,
-                    key = { it.id }
-                ) { download ->
-                    DownloadHistoryItem(
-                        download = download,
-                        onDelete = { onDeleteDownload(download.id) },
-                        onShare = { onShareDownload(download.downloadPath) },
-                        onOpen = { onOpenDownload(download.downloadPath) }
+        when {
+            downloadHistory.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = AppConstants.NO_DOWNLOADS_MESSAGE,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.height(300.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
+                ) {
+                    items(
+                        items = downloadHistory,
+                        key = { it.id }
+                    ) { download ->
+                        DownloadHistoryItem(
+                            download = download,
+                            onDelete = { onDeleteDownload(download.id) },
+                            onShare = { onShareDownload(download.downloadPath) },
+                            onOpen = { onOpenDownload(download.downloadPath) }
+                        )
+                    }
                 }
             }
         }
@@ -89,7 +92,7 @@ private fun DownloadHistoryItem(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.width(280.dp),
+        modifier = modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
