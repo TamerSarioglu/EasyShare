@@ -112,4 +112,11 @@ object AppConstants {
     // Time Constants
     const val FILE_SEARCH_TIME_WINDOW_MS = 60000L // 1 minute
     const val UPDATE_MESSAGE_DISPLAY_TIME_MS = 3000L // 3 seconds
+    
+    // Download History
+    const val DOWNLOAD_HISTORY_TITLE = "Recent Downloads"
+    const val NO_DOWNLOADS_MESSAGE = "No downloads yet"
+    const val DELETE_DOWNLOAD = "Delete"
+    const val OPEN_FILE = "Open"
+    const val SHARE_FILE = "Share"
 }

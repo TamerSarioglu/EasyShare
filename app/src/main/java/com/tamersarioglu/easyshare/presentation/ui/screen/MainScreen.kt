@@ -2,7 +2,9 @@ package com.tamersarioglu.easyshare.presentation.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -13,9 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tamersarioglu.easyshare.core.utils.FileUtils
 import com.tamersarioglu.easyshare.domain.model.DownloadState
 import com.tamersarioglu.easyshare.presentation.ui.components.ActionButtons
 import com.tamersarioglu.easyshare.presentation.ui.components.DownloadSection
+import com.tamersarioglu.easyshare.presentation.ui.components.DownloadHistorySection
 import com.tamersarioglu.easyshare.presentation.viewmodel.MainViewModel
 
 @Composable
@@ -26,6 +30,7 @@ fun MainScreen(
     val downloadState by viewModel.downloadState.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     val url by viewModel.url.collectAsState()
+    val downloadHistory by viewModel.downloadHistory.collectAsState()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column(
@@ -50,6 +55,20 @@ fun MainScreen(
             if (currentDownloadState is DownloadState.Success) {
                 ActionButtons(filePath = currentDownloadState.filePath)
             }
+
+            // Show download history
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            DownloadHistorySection(
+                downloadHistory = downloadHistory,
+                onDeleteDownload = viewModel::deleteDownloadHistory,
+                onShareDownload = { filePath ->
+                    FileUtils.shareVideo(context, filePath)
+                },
+                onOpenDownload = { filePath ->
+                    FileUtils.openFolder(context, filePath)
+                }
+            )
         }
     }
 }
