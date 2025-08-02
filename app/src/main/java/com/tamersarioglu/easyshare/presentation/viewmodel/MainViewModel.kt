@@ -7,8 +7,6 @@ import com.tamersarioglu.easyshare.domain.model.DownloadState
 import com.tamersarioglu.easyshare.domain.model.UpdateState
 import com.tamersarioglu.easyshare.domain.usecase.CancelDownloadUseCase
 import com.tamersarioglu.easyshare.domain.usecase.DownloadVideoUseCase
-import com.tamersarioglu.easyshare.domain.usecase.GetRequiredPermissionsUseCase
-import com.tamersarioglu.easyshare.domain.usecase.GetPermissionsToRequestUseCase
 import com.tamersarioglu.easyshare.domain.usecase.UpdateYoutubeDLUseCase
 import com.tamersarioglu.easyshare.core.constants.AppConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,9 +21,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val downloadVideoUseCase: DownloadVideoUseCase,
     private val updateYoutubeDLUseCase: UpdateYoutubeDLUseCase,
-    private val cancelDownloadUseCase: CancelDownloadUseCase,
-    private val getRequiredPermissionsUseCase: GetRequiredPermissionsUseCase,
-    private val getPermissionsToRequestUseCase: GetPermissionsToRequestUseCase
+    private val cancelDownloadUseCase: CancelDownloadUseCase
 ) : ViewModel() {
 
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
@@ -73,14 +69,6 @@ class MainViewModel @Inject constructor(
             delay(AppConstants.UPDATE_MESSAGE_DISPLAY_TIME_MS)
             _updateState.value = UpdateState.Idle
         }
-    }
-
-    fun getRequiredPermissions(): List<String> {
-        return getRequiredPermissionsUseCase()
-    }
-    
-    fun getPermissionsToRequest(): List<String> {
-        return getPermissionsToRequestUseCase()
     }
 
     fun resetDownloadState() {

@@ -11,12 +11,11 @@ import com.tamersarioglu.easyshare.presentation.ui.screen.MainScreen
 import com.tamersarioglu.easyshare.presentation.viewmodel.MainViewModel
 import com.tamersarioglu.easyshare.ui.theme.EasyShareTheme
 import com.tamersarioglu.easyshare.core.constants.AppConstants
+import com.tamersarioglu.easyshare.core.utils.PermissionUtils
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    private val viewModel: MainViewModel by viewModels()
 
     private val storagePermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -46,7 +45,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestStoragePermissions() {
-        val permissionsToRequest = viewModel.getPermissionsToRequest()
+        val permissionsToRequest = PermissionUtils.getPermissionsToRequest(this)
 
         if (permissionsToRequest.isNotEmpty()) {
             storagePermissionLauncher.launch(permissionsToRequest.toTypedArray())

@@ -1,8 +1,6 @@
 package com.tamersarioglu.easyshare.di
 
-import com.tamersarioglu.easyshare.data.repository.PermissionRepositoryImpl
 import com.tamersarioglu.easyshare.data.repository.VideoDownloadRepositoryImpl
-import com.tamersarioglu.easyshare.domain.repository.PermissionRepository
 import com.tamersarioglu.easyshare.domain.repository.VideoDownloadRepository
 import dagger.Binds
 import dagger.Module
@@ -19,10 +17,4 @@ abstract class RepositoryModule {
     abstract fun bindVideoDownloadRepository(
         videoDownloadRepositoryImpl: VideoDownloadRepositoryImpl
     ): VideoDownloadRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindPermissionRepository(
-        permissionRepositoryImpl: PermissionRepositoryImpl
-    ): PermissionRepository
 }

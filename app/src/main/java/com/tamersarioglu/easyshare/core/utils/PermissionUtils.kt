@@ -1,21 +1,14 @@
-package com.tamersarioglu.easyshare.data.repository
+package com.tamersarioglu.easyshare.core.utils
 
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
-import com.tamersarioglu.easyshare.domain.repository.PermissionRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PermissionRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
-) : PermissionRepository {
-
-    override fun getRequiredPermissions(): List<String> {
+object PermissionUtils {
+    
+    fun getRequiredPermissions(): List<String> {
         val permissions = mutableListOf<String>()
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -29,14 +22,14 @@ class PermissionRepositoryImpl @Inject constructor(
         
         return permissions
     }
-
-    override fun hasPermissions(permissions: List<String>): Boolean {
+    
+    fun hasPermissions(context: Context, permissions: List<String>): Boolean {
         return permissions.all { permission ->
             ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
         }
     }
     
-    override fun getPermissionsToRequest(): List<String> {
+    fun getPermissionsToRequest(context: Context): List<String> {
         val requiredPermissions = getRequiredPermissions()
         return requiredPermissions.filter { permission ->
             ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED

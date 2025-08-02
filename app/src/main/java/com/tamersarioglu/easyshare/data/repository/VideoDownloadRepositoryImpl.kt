@@ -77,7 +77,7 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
     override suspend fun updateYoutubeDL(context: Context): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)
+                YoutubeDL.getInstance().updateYoutubeDL(appContext = context, updateChannel = YoutubeDL.UpdateChannel.STABLE)
                 Log.d(TAG, AppConstants.YTDLP_UPDATED_LOG)
                 true
             } catch (e: Exception) {
@@ -125,7 +125,6 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
             }
         }
         
-        // Fallback: check Downloads root folder
         val downloadsRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val rootFiles = downloadsRoot.listFiles()?.filter { 
             it.isFile && it.lastModified() > System.currentTimeMillis() - AppConstants.FILE_SEARCH_TIME_WINDOW_MS
