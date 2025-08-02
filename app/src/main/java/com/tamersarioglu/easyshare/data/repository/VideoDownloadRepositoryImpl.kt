@@ -8,6 +8,7 @@ import com.tamersarioglu.easyshare.domain.repository.VideoDownloadRepository
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import com.yausername.youtubedl_android.YoutubeDLResponse
+import com.tamersarioglu.easyshare.core.constants.AppConstants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -18,7 +19,7 @@ import javax.inject.Singleton
 class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepository {
 
     private companion object {
-        const val TAG = "VideoDownloadRepository"
+        const val TAG = AppConstants.TAG_VIDEO_DOWNLOAD_REPOSITORY
     }
 
     private var isCancelled = false
@@ -27,51 +28,44 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
         onProgress(DownloadState.Initializing)
         isCancelled = false
 
-        val formatOptions = listOf(
-            "best[height<=720][ext=mp4]",
-            "best[height<=480][ext=mp4]",
-            "worst[ext=mp4]",
-            "best[height<=720]",
-            "best[height<=480]",
-            "worst"
-        )
+        val formatOptions = AppConstants.VIDEO_FORMAT_OPTIONS
 
         for ((index, format) in formatOptions.withIndex()) {
             try {
-                Log.d(TAG, "Trying format: $format (attempt ${index + 1}/${formatOptions.size})")
+                Log.d(TAG, AppConstants.TRYING_FORMAT.format(format, index + 1, formatOptions.size))
 
                 val request = createDownloadRequest(url, format)
                 val response: YoutubeDLResponse = withContext(Dispatchers.IO) {
                     if (isCancelled) {
-                        throw InterruptedException("Download cancelled by user")
+                        throw InterruptedException(AppConstants.DOWNLOAD_CANCELLED_BY_USER)
                     }
                     YoutubeDL.getInstance().execute(request)
                 }
 
                 if (response.exitCode == 0) {
-                    Log.d(TAG, "Download successful with format: $format")
+                    Log.d(TAG, AppConstants.DOWNLOAD_SUCCESSFUL_FORMAT.format(format))
                     val filePath = findDownloadedFile()
                     onProgress(DownloadState.Success(filePath))
                     return
                 } else {
                     if (index == formatOptions.size - 1) {
-                        val errorMessage = "Download failed with all format options. Exit code: ${response.exitCode}. Output: ${response.out}"
+                        val errorMessage = AppConstants.DOWNLOAD_FAILED_ALL_FORMATS.format(response.exitCode, response.out)
                         Log.e(TAG, errorMessage)
                         onProgress(DownloadState.Error(errorMessage))
                         return
                     }
-                    Log.w(TAG, "Format $format failed (exit code: ${response.exitCode}), trying next option...")
+                    Log.w(TAG, AppConstants.FORMAT_FAILED_EXIT_CODE.format(format, response.exitCode))
                 }
 
             } catch (e: InterruptedException) {
-                Log.i(TAG, "Download was cancelled")
+                Log.i(TAG, AppConstants.DOWNLOAD_CANCELLED_BY_USER)
                 onProgress(DownloadState.Cancelled)
                 return
             } catch (e: Exception) {
-                Log.w(TAG, "Format $format failed with exception: ${e.message}")
+                Log.w(TAG, AppConstants.FORMAT_FAILED_EXCEPTION.format(format, e.message))
 
                 if (index == formatOptions.size - 1) {
-                    Log.e(TAG, "Download error with all format options", e)
+                    Log.e(TAG, AppConstants.DOWNLOAD_ERROR_ALL_FORMATS, e)
                     val errorMessage = mapExceptionToUserMessage(e)
                     onProgress(DownloadState.Error(errorMessage))
                     return
@@ -84,10 +78,10 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
         return withContext(Dispatchers.IO) {
             try {
                 YoutubeDL.getInstance().updateYoutubeDL(context, YoutubeDL.UpdateChannel.STABLE)
-                Log.d(TAG, "yt-dlp binary updated successfully")
+                Log.d(TAG, AppConstants.YTDLP_UPDATED_LOG)
                 true
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to update yt-dlp binary", e)
+                Log.e(TAG, AppConstants.YTDLP_UPDATE_FAILED_LOG, e)
                 false
             }
         }
@@ -99,34 +93,34 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
 
     private fun createDownloadRequest(url: String, format: String): YoutubeDLRequest {
         val request = YoutubeDLRequest(url)
-        val outputDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "EasyShare")
+        val outputDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), AppConstants.FOLDER_NAME)
             .apply { mkdirs() }
         
-        val outputTemplate = "${outputDir.absolutePath}/%(title)s.%(ext)s"
-        request.addOption("-o", outputTemplate)
-        request.addOption("--restrict-filenames")
-        request.addOption("-f", format)
-        request.addOption("--extractor-args", "youtube:player_client=android,web")
-        request.addOption("--no-check-certificates")
-        request.addOption("--user-agent", "Mozilla/5.0 (Linux; Android 11; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36")
-        request.addOption("--compat-options", "no-youtube-channel-redirect")
-        request.addOption("--extractor-retries", "3")
-        request.addOption("--socket-timeout", "30")
-        request.addOption("--newline")
-        request.addOption("--no-warnings")
-        request.addOption("--ignore-errors")
+        val outputTemplate = AppConstants.OUTPUT_TEMPLATE.format(outputDir.absolutePath)
+        request.addOption(AppConstants.OUTPUT_OPTION, outputTemplate)
+        request.addOption(AppConstants.RESTRICT_FILENAMES)
+        request.addOption(AppConstants.FORMAT_OPTION, format)
+        request.addOption(AppConstants.EXTRACTOR_ARGS, AppConstants.EXTRACTOR_ARGS_VALUE)
+        request.addOption(AppConstants.NO_CHECK_CERTIFICATES)
+        request.addOption(AppConstants.USER_AGENT, AppConstants.USER_AGENT_VALUE)
+        request.addOption(AppConstants.COMPAT_OPTIONS, AppConstants.COMPAT_OPTIONS_VALUE)
+        request.addOption(AppConstants.EXTRACTOR_RETRIES, AppConstants.EXTRACTOR_RETRIES_VALUE)
+        request.addOption(AppConstants.SOCKET_TIMEOUT, AppConstants.SOCKET_TIMEOUT_VALUE)
+        request.addOption(AppConstants.NEWLINE)
+        request.addOption(AppConstants.NO_WARNINGS)
+        request.addOption(AppConstants.IGNORE_ERRORS)
         
         return request
     }
 
     private fun findDownloadedFile(): String {
-        val outputDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "EasyShare")
+        val outputDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), AppConstants.FOLDER_NAME)
         
         val downloadedFiles = outputDir.listFiles()
         if (downloadedFiles != null && downloadedFiles.isNotEmpty()) {
             val recentFile = downloadedFiles.maxByOrNull { it.lastModified() }
             if (recentFile != null) {
-                Log.d(TAG, "Found file in EasyShare folder: ${recentFile.absolutePath}")
+                Log.d(TAG, AppConstants.FOUND_FILE_EASYSHARE.format(recentFile.absolutePath))
                 return recentFile.absolutePath
             }
         }
@@ -134,7 +128,7 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
         // Fallback: check Downloads root folder
         val downloadsRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val rootFiles = downloadsRoot.listFiles()?.filter { 
-            it.isFile && it.lastModified() > System.currentTimeMillis() - 60000
+            it.isFile && it.lastModified() > System.currentTimeMillis() - AppConstants.FILE_SEARCH_TIME_WINDOW_MS
         }
         
         if (rootFiles != null && rootFiles.isNotEmpty()) {
@@ -143,14 +137,14 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
                 val targetFile = File(outputDir, recentFile.name)
                 try {
                     if (recentFile.renameTo(targetFile)) {
-                        Log.d(TAG, "Moved file from root Downloads to EasyShare: ${targetFile.absolutePath}")
+                        Log.d(TAG, AppConstants.MOVED_FILE_TO_EASYSHARE.format(targetFile.absolutePath))
                         return targetFile.absolutePath
                     } else {
-                        Log.w(TAG, "Could not move file, using original location: ${recentFile.absolutePath}")
+                        Log.w(TAG, AppConstants.COULD_NOT_MOVE_FILE.format(recentFile.absolutePath))
                         return recentFile.absolutePath
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error moving file, using original location: ${recentFile.absolutePath}", e)
+                    Log.w(TAG, AppConstants.ERROR_MOVING_FILE.format(recentFile.absolutePath), e)
                     return recentFile.absolutePath
                 }
             }
@@ -161,22 +155,22 @@ class VideoDownloadRepositoryImpl @Inject constructor() : VideoDownloadRepositor
 
     private fun mapExceptionToUserMessage(e: Exception): String {
         return when {
-            e.message?.contains("Failed to extract any player response") == true -> {
-                "YouTube extraction failed. Try updating the app or the video might be restricted. Error: ${e.message}"
+            e.message?.contains(AppConstants.FAILED_TO_EXTRACT_PLAYER_RESPONSE) == true -> {
+                AppConstants.YOUTUBE_EXTRACTION_FAILED.format(e.message)
             }
-            e.message?.contains("Video unavailable") == true -> {
-                "Video is unavailable or has been removed."
+            e.message?.contains(AppConstants.VIDEO_UNAVAILABLE_KEYWORD) == true -> {
+                AppConstants.VIDEO_UNAVAILABLE
             }
-            e.message?.contains("Private video") == true -> {
-                "Cannot download private videos."
+            e.message?.contains(AppConstants.PRIVATE_VIDEO_KEYWORD) == true -> {
+                AppConstants.PRIVATE_VIDEO
             }
-            e.message?.contains("Sign in to confirm your age") == true -> {
-                "Age-restricted video. Cannot download without authentication."
+            e.message?.contains(AppConstants.SIGN_IN_CONFIRM_AGE) == true -> {
+                AppConstants.AGE_RESTRICTED_VIDEO
             }
-            e.message?.contains("This video is not available") == true -> {
-                "Video is not available in your region or has been removed."
+            e.message?.contains(AppConstants.VIDEO_NOT_AVAILABLE_KEYWORD) == true -> {
+                AppConstants.VIDEO_NOT_AVAILABLE_REGION
             }
-            else -> "Download error: ${e.message}"
+            else -> AppConstants.DOWNLOAD_ERROR_GENERIC.format(e.message)
         }
     }
 }

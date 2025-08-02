@@ -10,6 +10,7 @@ import com.tamersarioglu.easyshare.domain.usecase.DownloadVideoUseCase
 import com.tamersarioglu.easyshare.domain.usecase.GetRequiredPermissionsUseCase
 import com.tamersarioglu.easyshare.domain.usecase.GetPermissionsToRequestUseCase
 import com.tamersarioglu.easyshare.domain.usecase.UpdateYoutubeDLUseCase
+import com.tamersarioglu.easyshare.core.constants.AppConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,13 +64,13 @@ class MainViewModel @Inject constructor(
             
             val success = updateYoutubeDLUseCase(context)
             _updateState.value = if (success) {
-                UpdateState.Success("yt-dlp updated successfully!")
+                UpdateState.Success(AppConstants.YTDLP_UPDATED_SUCCESS)
             } else {
-                UpdateState.Error("Failed to update yt-dlp")
+                UpdateState.Error(AppConstants.YTDLP_UPDATE_FAILED)
             }
             
             // Clear update message after 3 seconds
-            delay(3000)
+            delay(AppConstants.UPDATE_MESSAGE_DISPLAY_TIME_MS)
             _updateState.value = UpdateState.Idle
         }
     }

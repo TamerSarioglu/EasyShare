@@ -10,6 +10,7 @@ import androidx.activity.viewModels
 import com.tamersarioglu.easyshare.presentation.ui.screen.MainScreen
 import com.tamersarioglu.easyshare.presentation.viewmodel.MainViewModel
 import com.tamersarioglu.easyshare.ui.theme.EasyShareTheme
+import com.tamersarioglu.easyshare.core.constants.AppConstants
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -24,7 +25,7 @@ class MainActivity : ComponentActivity() {
                 if (!allGranted) {
                     Toast.makeText(
                                     this,
-                                    "Storage permissions are required to download videos to your device",
+                                    AppConstants.STORAGE_PERMISSION_REQUIRED,
                                     Toast.LENGTH_LONG
                             )
                             .show()

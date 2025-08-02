@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.tamersarioglu.easyshare.core.constants.AppConstants
 import com.tamersarioglu.easyshare.domain.model.DownloadState
 import com.tamersarioglu.easyshare.domain.model.UpdateState
 
@@ -37,7 +38,7 @@ fun DownloadSection(
 
     Column(modifier = modifier) {
         Text(
-            text = "EasyShare - YouTube Downloader",
+            text = AppConstants.APP_TITLE,
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 16.dp)
         )
@@ -45,7 +46,7 @@ fun DownloadSection(
         OutlinedTextField(
             value = url,
             onValueChange = onUrlChange,
-            label = { Text("Enter Video URL") },
+            label = { Text(AppConstants.ENTER_VIDEO_URL) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
@@ -67,7 +68,7 @@ fun DownloadSection(
                 enabled = (url.isNotBlank() || isDownloading) && !isUpdating,
                 modifier = Modifier.weight(1f)
             ) {
-                Text(if (isDownloading) "Cancel" else "Download")
+                Text(if (isDownloading) AppConstants.CANCEL else AppConstants.DOWNLOAD)
             }
 
             OutlinedButton(
@@ -84,7 +85,7 @@ fun DownloadSection(
                         )
                     }
                 } else {
-                    Text("Update")
+                    Text(AppConstants.UPDATE)
                 }
             }
         }
@@ -129,7 +130,7 @@ private fun DownloadStatus(downloadState: DownloadState) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Initializing download...")
+                Text(AppConstants.INITIALIZING_DOWNLOAD)
             }
         }
 
@@ -139,15 +140,15 @@ private fun DownloadStatus(downloadState: DownloadState) {
                     progress = { downloadState.progress / 100f },
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("Downloading... ${"%.1f".format(downloadState.progress)}% ETA: ${downloadState.eta ?: "Calculating..."}")
+                Text(AppConstants.DOWNLOADING_PROGRESS.format(downloadState.progress, downloadState.eta ?: AppConstants.CALCULATING_ETA))
             }
         }
 
         is DownloadState.Success -> {
             Column {
-                Text("Download Successful!", color = MaterialTheme.colorScheme.primary)
+                Text(AppConstants.DOWNLOAD_SUCCESSFUL, color = MaterialTheme.colorScheme.primary)
                 Text(
-                    "Saved to: ${downloadState.filePath}",
+                    AppConstants.SAVED_TO.format(downloadState.filePath),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -155,18 +156,18 @@ private fun DownloadStatus(downloadState: DownloadState) {
 
         is DownloadState.Error -> {
             Column {
-                Text("Download Failed!", color = MaterialTheme.colorScheme.error)
+                Text(AppConstants.DOWNLOAD_FAILED, color = MaterialTheme.colorScheme.error)
                 Text(
                     downloadState.message,
                     style = MaterialTheme.typography.bodySmall
                 )
 
-                if (downloadState.message.contains("extraction failed", ignoreCase = true) ||
-                    downloadState.message.contains("player response", ignoreCase = true)
+                if (downloadState.message.contains(AppConstants.EXTRACTION_FAILED_KEYWORD, ignoreCase = true) ||
+                    downloadState.message.contains(AppConstants.PLAYER_RESPONSE_KEYWORD, ignoreCase = true)
                 ) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "💡 Try clicking 'Update' to get the latest yt-dlp version",
+                        AppConstants.UPDATE_SUGGESTION,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -175,7 +176,7 @@ private fun DownloadStatus(downloadState: DownloadState) {
         }
 
         is DownloadState.Cancelled -> {
-            Text("Download Cancelled", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(AppConstants.DOWNLOAD_CANCELLED, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         is DownloadState.Idle -> {

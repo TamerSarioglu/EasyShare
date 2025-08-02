@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.tamersarioglu.easyshare.core.constants.AppConstants
 import java.io.File
 
 @Composable
@@ -35,14 +36,14 @@ fun ActionButtons(
             onClick = { openFolder(context, filePath) },
             modifier = Modifier.weight(1f)
         ) {
-            Text("Open Folder")
+            Text(AppConstants.OPEN_FOLDER)
         }
         
         Button(
             onClick = { shareVideo(context, filePath) },
             modifier = Modifier.weight(1f)
         ) {
-            Text("Share")
+            Text(AppConstants.SHARE)
         }
     }
 }
@@ -53,8 +54,8 @@ private fun openFolder(context: Context, filePath: String) {
         if (file.exists()) {
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(
-                    "content://com.android.externalstorage.documents/document/primary:Download/EasyShare".toUri(),
-                    "vnd.android.document/directory"
+                    AppConstants.DOWNLOADS_EASYSHARE_URI.toUri(),
+                    AppConstants.DIRECTORY_MIME_TYPE
                 )
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -65,8 +66,8 @@ private fun openFolder(context: Context, filePath: String) {
                 try {
                     val downloadsIntent = Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(
-                            "content://com.android.externalstorage.documents/document/primary:Download".toUri(),
-                            "vnd.android.document/directory"
+                            AppConstants.DOWNLOADS_URI.toUri(),
+                            AppConstants.DIRECTORY_MIME_TYPE
                         )
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
@@ -74,7 +75,7 @@ private fun openFolder(context: Context, filePath: String) {
                 } catch (e2: Exception) {
                     Toast.makeText(
                         context,
-                        "File saved to: Downloads/EasyShare/${file.name}",
+                        AppConstants.FILE_SAVED_TO.format(file.name),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -82,12 +83,12 @@ private fun openFolder(context: Context, filePath: String) {
         } else {
             Toast.makeText(
                 context,
-                "Video file not found",
+                AppConstants.VIDEO_FILE_NOT_FOUND,
                 Toast.LENGTH_SHORT
             ).show()
         }
     } catch (e: Exception) {
-        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, AppConstants.ERROR_PREFIX.format(e.message), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -102,20 +103,20 @@ private fun shareVideo(context: Context, filePath: String) {
             )
             
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "video/*"
+                type = AppConstants.VIDEO_MIME_TYPE
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             
-            context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
+            context.startActivity(Intent.createChooser(shareIntent, AppConstants.SHARE_VIDEO))
         } else {
             Toast.makeText(
                 context,
-                "Video file not found",
+                AppConstants.VIDEO_FILE_NOT_FOUND,
                 Toast.LENGTH_SHORT
             ).show()
         }
     } catch (e: Exception) {
-        Toast.makeText(context, "Error sharing: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, AppConstants.ERROR_SHARING_PREFIX.format(e.message), Toast.LENGTH_SHORT).show()
     }
 }
