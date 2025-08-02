@@ -7,9 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
 import com.tamersarioglu.easyshare.presentation.ui.screen.MainScreen
 import com.tamersarioglu.easyshare.presentation.viewmodel.MainViewModel
 import com.tamersarioglu.easyshare.ui.theme.EasyShareTheme
@@ -42,7 +39,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             EasyShareTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding -> MainScreen() }
+                MainScreen()
             }
         }
     }

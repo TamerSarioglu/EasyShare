@@ -46,7 +46,6 @@ fun MainScreen(
                 onUpdateClick = { viewModel.updateYoutubeDL(context) }
             )
 
-            // Show action buttons only when download is successful
             val currentDownloadState = downloadState
             if (currentDownloadState is DownloadState.Success) {
                 ActionButtons(filePath = currentDownloadState.filePath)

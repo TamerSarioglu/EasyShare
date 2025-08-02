@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -77,11 +76,13 @@ fun DownloadSection(
                 modifier = Modifier.weight(0.7f)
             ) {
                 if (isUpdating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .width(16.dp)
-                            .height(16.dp)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(4.dp)
+                        )
+                    }
                 } else {
                     Text("Update")
                 }
@@ -124,7 +125,10 @@ private fun DownloadStatus(downloadState: DownloadState) {
     when (downloadState) {
         is DownloadState.Initializing -> {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator()
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text("Initializing download...")
             }
         }
