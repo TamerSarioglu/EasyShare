@@ -1,22 +1,16 @@
 package com.tamersarioglu.easyshare
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.core.content.FileProvider
-import java.io.File
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,11 +38,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.tamersarioglu.easyshare.ui.theme.EasyShareTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.io.File
+import androidx.core.net.toUri
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -70,7 +67,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Request storage permissions
         requestStoragePermissions()
         
         setContent {
@@ -86,10 +82,8 @@ class MainActivity : ComponentActivity() {
         val permissions = mutableListOf<String>()
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ (API 33+)
             permissions.add(Manifest.permission.READ_MEDIA_VIDEO)
         } else {
-            // Android 12 and below
             permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
                 permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -152,7 +146,7 @@ fun DownloadScreen() {
                             isDownloading = true
                             downloadState = DownloadResult.Initializing
                             coroutineScope.launch {
-                                DownloadUtil.downloadVideo(context, url.text) { state ->
+                                DownloadUtil.downloadVideo(url = url.text) { state ->
                                     downloadState = state
                                     if (state is DownloadResult.Success ||
                                         state is DownloadResult.Error ||
@@ -184,7 +178,6 @@ fun DownloadScreen() {
                                 "Failed to update yt-dlp"
                             }
                             isUpdating = false
-                            // Clear message after 3 seconds
                             kotlinx.coroutines.delay(3000)
                             updateMessage = ""
                         }
@@ -206,7 +199,6 @@ fun DownloadScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Show update message
             if (updateMessage.isNotEmpty()) {
                 Text(
                     text = updateMessage,
@@ -221,7 +213,6 @@ fun DownloadScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Display download state
             when (val state = downloadState) {
                 is DownloadResult.Initializing -> {
                     CircularProgressIndicator()
@@ -229,7 +220,6 @@ fun DownloadScreen() {
                 }
 
                 is DownloadResult.Progress -> {
-                    // Linear Progress Indicator for percentage
                     LinearProgressIndicator(
                         progress = { state.progress / 100f },
                         modifier = Modifier.fillMaxWidth()
@@ -255,10 +245,9 @@ fun DownloadScreen() {
                                 try {
                                     val file = File(state.filePath)
                                     if (file.exists()) {
-                                        // Try to open Downloads folder directly
                                         val intent = Intent(Intent.ACTION_VIEW).apply {
                                             setDataAndType(
-                                                Uri.parse("content://com.android.externalstorage.documents/document/primary:Download/EasyShare"),
+                                                "content://com.android.externalstorage.documents/document/primary:Download/EasyShare".toUri(),
                                                 "vnd.android.document/directory"
                                             )
                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -267,18 +256,16 @@ fun DownloadScreen() {
                                         try {
                                             context.startActivity(intent)
                                         } catch (e: Exception) {
-                                            // Fallback: Open Downloads folder
                                             try {
                                                 val downloadsIntent = Intent(Intent.ACTION_VIEW).apply {
                                                     setDataAndType(
-                                                        Uri.parse("content://com.android.externalstorage.documents/document/primary:Download"),
+                                                        "content://com.android.externalstorage.documents/document/primary:Download".toUri(),
                                                         "vnd.android.document/directory"
                                                     )
                                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                 }
                                                 context.startActivity(downloadsIntent)
                                             } catch (e2: Exception) {
-                                                // Final fallback: Show path
                                                 Toast.makeText(
                                                     context,
                                                     "File saved to: Downloads/EasyShare/${file.name}",
@@ -308,7 +295,6 @@ fun DownloadScreen() {
                                 try {
                                     val file = File(state.filePath)
                                     if (file.exists()) {
-                                        // Share the video file
                                         val uri = FileProvider.getUriForFile(
                                             context,
                                             "${context.packageName}.provider",
@@ -348,7 +334,6 @@ fun DownloadScreen() {
                         style = MaterialTheme.typography.bodySmall
                     )
 
-                    // Add a hint about updating if it's an extraction error
                     if (state.message.contains("extraction failed", ignoreCase = true) ||
                         state.message.contains("player response", ignoreCase = true)
                     ) {

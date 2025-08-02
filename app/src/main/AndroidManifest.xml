@@ -6,9 +6,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
         android:maxSdkVersion="28" />
-    <!-- For Android 10+ (API 29+) we use scoped storage -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <!-- For managing external storage on Android 11+ (API 30+) -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
         tools:ignore="ScopedStorage" />
 

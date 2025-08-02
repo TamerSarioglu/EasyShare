@@ -78,12 +78,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
 
-    // --- youtubedl-android dependencies ---
-    // Core library for downloading - using latest version
-    implementation(libs.library) // Latest version with updated yt-dlp
-    // Optional: FFmpeg for better format support
-    implementation(libs.ffmpeg) // Latest version
-    // Optional: Aria2c for potentially faster downloads (if needed)
-    implementation(libs.aria2c) // Latest version
-    // --- End youtubedl-android dependencies ---
+    implementation(libs.library)
+    implementation(libs.ffmpeg)
+    implementation(libs.aria2c)
 }

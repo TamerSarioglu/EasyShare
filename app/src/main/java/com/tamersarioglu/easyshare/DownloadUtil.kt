@@ -10,7 +10,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import android.os.Environment
 
-// Sealed class to represent different states of the download process
 sealed class DownloadResult {
     data object Initializing : DownloadResult()
     data class Progress(val progress: Float, val eta: String?) : DownloadResult()
@@ -25,20 +24,16 @@ object DownloadUtil {
     private var isCancelled = false
 
     suspend fun downloadVideo(
-        context: Context,
         url: String,
         onProgress: (DownloadResult) -> Unit
     ) {
         onProgress(DownloadResult.Initializing)
         isCancelled = false
 
-        // Enhanced format options with more fallbacks
         val formatOptions = listOf(
-            // Try simple best formats first
             "best[height<=720][ext=mp4]",
             "best[height<=480][ext=mp4]",
             "worst[ext=mp4]",
-            // Fallback to any format
             "best[height<=720]",
             "best[height<=480]",
             "worst"
@@ -48,39 +43,29 @@ object DownloadUtil {
             try {
                 Log.d(TAG, "Trying format: $format (attempt ${index + 1}/${formatOptions.size})")
 
-                // 1. Create a request
                 val request = YoutubeDLRequest(url)
-
-                // 2. Set options - Save to public Downloads folder
                 val outputDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "EasyShare")
                     .apply { mkdirs() }
                 
-                // Use absolute path for output template with proper escaping
                 val outputTemplate = "${outputDir.absolutePath}/%(title)s.%(ext)s"
                 request.addOption("-o", outputTemplate)
                 
-                // Add additional options to ensure file goes to correct location
-                request.addOption("--restrict-filenames")  // Avoid special characters that might cause path issues
+                request.addOption("--restrict-filenames")
 
-                // Set format
                 request.addOption("-f", format)
 
-                // Enhanced extraction options for YouTube
                 request.addOption("--extractor-args", "youtube:player_client=android,web")
                 request.addOption("--no-check-certificates")
                 request.addOption("--user-agent", "Mozilla/5.0 (Linux; Android 11; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36")
 
-                // Additional workaround options
                 request.addOption("--compat-options", "no-youtube-channel-redirect")
                 request.addOption("--extractor-retries", "3")
                 request.addOption("--socket-timeout", "30")
 
-                // Progress and output options
                 request.addOption("--newline")
                 request.addOption("--no-warnings")
                 request.addOption("--ignore-errors")
 
-                // 3. Execute the request on IO thread
                 val response: YoutubeDLResponse = withContext(Dispatchers.IO) {
                     if (isCancelled) {
                         throw InterruptedException("Download cancelled by user")
@@ -88,32 +73,26 @@ object DownloadUtil {
                     YoutubeDL.getInstance().execute(request)
                 }
 
-                // 4. Handle the result
                 if (response.exitCode == 0) {
-                    // Success - try to find the downloaded file
                     Log.d(TAG, "Download successful with format: $format")
                     Log.d(TAG, "Expected output dir: ${outputDir.absolutePath}")
                     Log.d(TAG, "Output template: $outputTemplate")
                     
-                    // First check if file is in our intended directory
                     var finalFilePath: String? = null
                     val downloadedFiles = outputDir.listFiles()
                     
                     if (downloadedFiles != null && downloadedFiles.isNotEmpty()) {
-                        // File found in EasyShare folder
                         finalFilePath = downloadedFiles.maxByOrNull { it.lastModified() }?.absolutePath
                         Log.d(TAG, "Found file in EasyShare folder: $finalFilePath")
                     } else {
-                        // File might be in the root Downloads folder, let's search there
                         val downloadsRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                         val rootFiles = downloadsRoot.listFiles()?.filter { 
-                            it.isFile && it.lastModified() > System.currentTimeMillis() - 60000 // Files from last minute
+                            it.isFile && it.lastModified() > System.currentTimeMillis() - 60000
                         }
                         
                         if (rootFiles != null && rootFiles.isNotEmpty()) {
                             val recentFile = rootFiles.maxByOrNull { it.lastModified() }
                             if (recentFile != null) {
-                                // Move the file to EasyShare folder
                                 val targetFile = File(outputDir, recentFile.name)
                                 try {
                                     if (recentFile.renameTo(targetFile)) {
@@ -133,16 +112,14 @@ object DownloadUtil {
                     
                     finalFilePath = finalFilePath ?: outputTemplate
                     onProgress(DownloadResult.Success(finalFilePath))
-                    return // Success, exit the function
+                    return
                 } else {
-                    // If this is the last format option, throw an error
                     if (index == formatOptions.size - 1) {
                         val errorMessage = "Download failed with all format options. Exit code: ${response.exitCode}. Output: ${response.out}"
                         Log.e(TAG, errorMessage)
                         onProgress(DownloadResult.Error(errorMessage))
                         return
                     }
-                    // Otherwise, continue to next format option
                     Log.w(TAG, "Format $format failed (exit code: ${response.exitCode}), trying next option...")
                 }
 
@@ -153,7 +130,6 @@ object DownloadUtil {
             } catch (e: Exception) {
                 Log.w(TAG, "Format $format failed with exception: ${e.message}")
 
-                // If this is the last format option, handle the error
                 if (index == formatOptions.size - 1) {
                     Log.e(TAG, "Download error with all format options", e)
 
@@ -179,14 +155,10 @@ object DownloadUtil {
                     onProgress(DownloadResult.Error(errorMessage))
                     return
                 }
-                // Otherwise, continue to next format option
             }
         }
     }
 
-    /**
-     * Try to update the yt-dlp binary
-     */
     suspend fun updateYoutubeDL(context: Context): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -204,7 +176,6 @@ object DownloadUtil {
         isCancelled = true
     }
 
-    // Simple ETA formatting (e.g., converts seconds to mm:ss or hh:mm:ss)
     private fun formatETA(seconds: Long): String {
         val hrs = seconds / 3600
         val mins = (seconds % 3600) / 60
